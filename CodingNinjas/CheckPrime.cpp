@@ -18,5 +18,14 @@ int main() {
         }
         divisor ++ ;
     }
+/*
+    for (int i = 0 , PrimeFlag = true ; i < sqrt(n) ; i ++ ) {
+        if (n % i == 0 ) {
+            PrimeFlag = false ;
+            break;
+        }
+    }
+    */
+
     if (PrimeFlag) cout << "The number provided " << n << " is a Prime Number" << endl ;
 }
