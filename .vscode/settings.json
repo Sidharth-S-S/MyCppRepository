@@ -72,5 +72,15 @@
         "valarray": "cpp",
         "climits": "cpp",
         "limits.h": "c"
-    }
+    },
+    "C_Cpp.autoAddFileAssociations": true,
+    "C_Cpp.default.cppStandard": "c++11",
+    "C_Cpp.default.includePath": ["C:/IPG/carmaker/win64-9.1.2/include",
+        ".",
+        "./include",
+        "C:/Program Files/MATLAB/R2019b/simulink/include",
+        "C:/Program Files/MATLAB/R2019b/extern/include",
+        "C:/msys-2020/mingw/lib64/gcc/x86_64-w64-mingw32/7.5.0/include",
+        "C:/msys-2020/mingw/x86_64-w64-mingw32/mingw/include",
+        "C:/msys-2017/mingw64/x86_64-w64-mingw32/include"]
 }
