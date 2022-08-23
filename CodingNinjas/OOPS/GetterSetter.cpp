@@ -1,7 +1,7 @@
 #include "iostream"
 using namespace std;
 
-#include "OOPS/StudentClass.cpp"
+#include "StudentClass.cpp"
 
 int main(int argc, char** argv){
     Student s1,s2;
@@ -26,9 +26,7 @@ int main(int argc, char** argv){
     s2.display() ;
     s3->display() ; 
 
-    s3->EditRollNumber(109,12345) ;
-
-
-
+    s3->EditRollNumber(109,12345) ; // edit the Roll Number with a PW
+    
     return 0 ;
 }
