@@ -5,6 +5,10 @@ Markdown, in comparison to HTML, is much simpler to read and write.  The average
 
 Specifically, Visual Studio Code uses the [CommonMark](http://commonmark.org/) Markdown specification.
 
+> To build in VS Code , use command pallete and give ::  Markdown: Open Preview
+
+> Or else you can perform Ctrl + Shift + V to open the preview.
+
 ## Sections
 - [Markdown Starter Worksheet](#markdown-starter-worksheet)
   - [Sections](#sections)
