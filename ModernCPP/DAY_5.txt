@@ -1,0 +1,423 @@
+WEAK_PTR:
+    An instance of type weak_ptr will be of use only when it is associated with a shared_ptr instance. A weak_ptr instance seperately or by itself is of no practical use.
+    
+    During some problem design it would lead to circular reference of shared_ptr types, under such circumstances it would lead to a situation called dead-lock, neither shared_ptr's will drop a handle to resource, each waiting for one another to the same. It is during this kind of problem situation, a weak_ptr type instance becomes handy.
+    
+    A weak_ptr type instance when associated with some shared_ptr instance, will also point to the same heap resource, including the control block. As such this instance when associated with a shared_ptr type, does not disturb or alter the strong_count in the control, rather it mains it's use count in the control block.
+    
+    Thereby we say, an instance of weak_ptr will bring about a weak-link in a circular reference model.
+    
+Note: A weak_ptr instance shall be initialized or assigned with a shared_ptr types only. No external heap resource acquired thru 'new' or make_shared call will be provided.
+
+  The state of the HEAP resource owned by a shared_ptr instance, is influenced by the state of the strong-count in the control block, the state of weak_count does not impact the life-time of the HEAP resource.
+******************************************************
+Multithreading library in modern C++:-
+  The multi-threading library which is a standard, is platform neutral. While compiling the code, depending the platform and tool-chain, this plat-form neutral library will map to its native API.
+  
+  In order to brake a single executable into multiple sub-tasks, we spawn or create that many threads...For which we use the 'thread' class library.
+  
+  #include<thread>
+  
+  thread thread_instance_name(&function_address,[parameters..]);
+------------------------------------------------------------------------
+A thread instance upon being spawned needs to joined. This join statement must minimum be encountered by the child thread while the parent thread is exiting or terminating. If at this moment a thread does not find a join for himself, then it will throw an exception.  
+------------------------------------------
+There is no way where we can directly hold the return value of a function, that has spawned as a seperate by using thread class instances.
+  
+  Rather, wrap these functions return a value onto a packaged_task type instance, and then provide this packaged_task object as a parameter to the thread class instance.
+  
+  The packaged_task class has a member function called "get_future". A call to this function would return an instance of the type 'future'. This 'future' type instance would actually point to a shared_memory, where the thread functions return result would be stored, To access this data from the shared_memory, we can employ a call to the 'get' member function of the 'future' class w.r.to the 'future' type object.
+  
+  A call to the 'get' must be made only once, anything in excess is in-valid. The shared_memory will be active till the first call to the 'get' function, thereafter this memory will get de-allocated.  
+--------------------------------------------
+If any function that we plan to spawn as a thread, and that function designed to generate an exception, then such function addresses should not serve directly as thread parameters...
+
+void fun()
+{
+ //..
+ if(condition)
+    throw 100;
+ //....
+}
+
+thread th1(&fun);  //bad-idea, catching the exception is impossible
+
+It is a good practice to wrap a call to functions that are designed to throw exceptions in a lambda function, and then provide these lambda instances as thread parameter for spawning threads, only then we can hold or catch the exceptions thrown by the function if any.
+
+auto lm =[]()
+{
+  try
+  {
+     fun();
+  }
+  catch(...)
+  {
+     //..
+  }
+};
+
+thread th1(lm);
+
+----------------------------
+DataRace:
+  
+Part of the code that employes are uses global entities or entities that is common to more than one function, then these statements consuming global entities could cause a RACE-CONDITION. The part of the code that causes RACE-CONDITION is also termed as CRITICAL-SECTION.
+
+
+Whenever we define any function, and such function if it is likely to used or consumed while developing a multi-threaded application, the CRITICAL-SECTION area of the code must synchronize this part of the code to avoid RACE-CONDITION.
+
+Thereby we try and use a synchronization primitive called as a 'mutex' type instance.
+--------------------------
+LOCK_GUARD: Uses RAII technique, it is exception safe, meaning the 'unlock' on the mutex is always guaranteed, either the function exits gracefully or pre-maturely terminates due to an exception.
+  
+template<typename T> class lock_guard
+{
+private:
+  T mx;
+ public:
+   lock_guard(T x):mx(x)
+   {
+     mx.lock();
+   }
+   
+   ~lock_guard()
+   {
+     mx.unlock();
+   }
+};
+
+//C++17 specialized lock_guard, for shared_mutex type
+
+template<> class lock_guard<shared_mutex>
+{
+private:
+  shared_mutex m;
+public:
+    lock_guard(shared_mutex& x):m(x) 
+    {
+      m.lock_shared();
+    }
+    ~lock_guard()
+    {
+      m.unlock_shared();
+    }
+};
+
+Scenario-1 : Where lock_guard instance is preferred over explicit call to lock/unlock calls on a mutex instance.
+
+std::mutex mx;
+
+void fun1()
+{
+   //Critical section starts from line-1 of the code and proceeds till the last-statement of the function
+   lock_guard<mutex> guard1(mx);
+   //***************
+   //*****************
+   //***************
+   //*****************
+}
+
+Scenario-2 : Where lock_guard instance is preferred over explicit call to lock/unlock calls on a mutex instance.
+
+std::mutex mx;
+
+void fun1()
+{
+
+  //############
+  //#############
+  //###########
+   //Critical section starts now and proceeds till the last-statement of the function
+   lock_guard<mutex> guard1(mx);
+   //***************
+   //*****************
+   //***************
+   //*****************
+}
+The unlocking of the mutex will only happen upon the destruction of the 'guard1' instance.
+-----------------
+Scenario-3: lock_guard is not the preferred choice.
+
+std::mutex mx;
+
+void fun1()
+{
+
+  //############
+  //#############
+  //###########
+   //Critical section starts here
+   lock_guard<mutex> guard(mx);   //a call to lock takes place here on the 'mx' and remain so till function 
+   //***************              // terminates...
+   //*****************
+   //***************
+   //*****************
+   //Critical section ends here
+   
+  //############
+  //#############
+  //###########
+   //Critical section starts here
+   
+   //***************
+   //*****************
+   //***************
+   //*****************
+   //Critical section ends here
+   //....
+}
+
+
+Solution-1: For the above (not exception safe)
+
+
+std::mutex mx;
+
+void fun1()
+{
+
+  //############
+  //#############
+  //###########
+   //Critical section starts here
+   mx.lock();
+   //***************              
+   //*****************
+   //***************
+   //*****************
+   //Critical section ends here
+   mx.unlock();
+   
+  //############
+  //#############
+  //###########
+   //Critical section starts here
+   mx.lock();
+   //***************
+   //*****************
+   //***************
+   //*****************
+   //Critical section ends here
+   mx.unlock();
+   //....
+}
+
+-------------------------------------
+Solution-2: For the above problem (exception safe), prefer to use 'unique_lock' handler
+
+
+std::mutex mx;
+
+void fun1()
+{
+   unique_lock<mutex> ul(mx,defer_lock);
+
+  //############
+  //#############
+  //###########
+   //Critical section starts here
+   ul.lock();
+   //***************              
+   //*****************
+   //***************
+   //*****************
+   //Critical section ends here
+   ul.unlock();
+   
+  //############
+  //#############
+  //###########
+   //Critical section starts here
+   ul.lock();
+   //***************
+   //*****************
+   //***************
+   //*****************
+   //Critical section ends here
+   ul.unlock();
+   //....
+}
+
+
+--------------------------------------------------
+std::mutex mtx;
+
+void fun()
+{
+  std::unique_lock<mutex> ul(mtx, defer_lock);
+  //NON-CRITICAL SECTION...
+  
+	//##########
+	//##########
+	
+	//CRITICAL SECTION
+	ul.lock();
+	//...
+	//...
+	ul.unlock();
+	//NON-CRITICAL SECTION
+  
+	//##########
+	//##########
+	
+	//CRITICAL SECTION
+	ul.lock();
+	//...
+	//...
+	ul.unlock();
+}
+------------------------------------------------------
+With respect to a thread class object or instance, It is not possible for us to hold the return value of the function spawned as a thread.
+
+The work-around for the same is to wrap that function which is returning a value and is likely to be spawned as thread into an object of type 'packaged_task'. And then provide this packaged_task object as a input to the thread instance under construction.
+
+Thereupon upon the thread completing it's job of invoking the function, the return result of the function will be stored onto a special memory called 'shared_memory'. In order to fetch the value from the this shared memory, we associate a future object with respect to this packaged_task instance.
+
+This 'future' object will establish a link or channel to the shared_memory. By invoking the 'get' member function of the future object we can retrieve the return result held in this shared_memory.
+
+The life-time of this shared_memory will be till the first 'get' function call with respect to a future object, and thereafter this shared_memory will get de-allocated. Thereby a second 'get' call will fail or we say the future object is not in a VALID state.
+
+For eg:
+
+std::string getDataFromDB( std::string token)
+{ ..}
+
+By creating a thread instance and providing the above function as unit-work as direct parameter, it will not be possible for us to hold the return value.
+
+thread th1(&getDataFromDB, "hello from main"); 
+
+We recommend wrap the above function onto a packaged_task object...
+
+std::packaged_task<std::string(std::string)> task(getDataFromDB);
+
+//Now employ a channel to point to the shared_memory
+//Call the 'get_future' member function of the packaged_task class, which in-turn would return a 'future' type instance. The 'future' type instance is also get getter.
+
+std::futurue<string> ft = task.get_future();
+
+thread th1(task,"hello from main"); //error, a packaged_task instance cannot be LVALUE copied.
+
+thread th1(move(task),"hello from main");  
+//Compiler will translate the above statement to the foll: form....
+// thread th(packaged_task<string(string)>::operator()(), std::move(task), "Arg");
+
+th1.join();
+
+auto str = ft.get();  // now the value will be fetched from shared_memory, and thereafter memory will de-allocated.
+cout << str;
+-------------------------------------------
+Promise and future:
+  A promise instance or an object helps store a value onto a shared memory.
+    Also called as INPUT channel...  (SETTER)
+    
+  A future type instance or an object helps us to retrieve the value from the shared memory.
+    Also called as OUTPUT channel...(GETTER)
+  
+  If a writing or storing a value onto a shared memory is taking place in a seperate thread, then this thread should use the 'promise' object for the same.
+  
+  A reading thread which attempts to fetch the value from a shared memory should use the 'future' object.
+  
+-------------------------------------
+Async function:
+  Using this function we can spawn threads the way we spawn threads using the thread class library.
+  
+  There are subtle differences between the them,..
+  
+  Thread library:
+    - It is compulsory for every thread spawned using thread class objects, we need to have a join statement.
+    - If the function being spawned as a thread using thread class objects, we cannot hold the return value.
+      We have to make use of 'packaged_task' type instances for the same.
+    - The moment thread instances gets constructed with a function address, the thread will get immediately 
+      spawned. Their is no option to delay this feature.
+      
+  Async function:
+      - By spawning threads using the 'async' function call we don't need any 'join' statements.
+      - We can directly hold the return values of a function with the help of 'async' call, because
+        by default the 'async' function returns a 'future' type object.
+      - We can direct the 'async' function to spawn a thread either immediately or later at point as
+        decided by the programmer.
+        
+  Note:
+    Holding the returned 'future' instance by the 'async' call would be necessary under 2 different 
+    circumstances..
+      - If the function spawned as thread is returning a value..
+      - If the launching of the thread has to be delayed and not immediate.
+      
+
+  async(launch::async | launch::deferred);
+
+----------------------------
+COMPILE-TIME ASSERTIONS:
+  Facilitates in checking for a condition or a pre-requisite for the code to compile. If the condition or the stated pre-requisite is not met, then the compiler would be prompted to flag-off an error. We use the 'static_assert' function from the 'type_traits' library.
+  
+  The 'static_assert' call can be employed inside of a function or at a class level.
+  
+  template<typename T> void fun()
+  {
+    static_assert(...., "error_message");   //can be employed inside a global function
+  }
+  
+  template<typename T> class CA
+  {
+       static_assert(...., "error_message");   //can also be employed at class-level
+  private:
+   //..
+  public:
+   //..
+   void fun()
+   {
+     static_assert(...., "error_message");  //can be employed inside a member function
+   }
+  };
+  
+  //C++98 approach
+  class CA
+  {
+  public:
+    template<typename T> void Fun(T x)
+    {
+       if(typeid(T).name() == typeid(int).name())
+       {
+         //..
+       }
+       else
+       {
+          cout <<"skipped the value:" << x << endl;
+       }
+    }
+  };
+  
+  
+  //C++11 approach
+  class CA
+  {
+  public:
+    template<typename T> void Fun(T x)
+    {
+       static_assert(is_INT<T>::value, "the input must be integer type");
+    }
+  };
+  
+  
+  CA obj1;
+  obj1.Fun(100); //ok
+  obj1.Fun(34.12f); //error
+  
+-----------------------------------
+static_assert:
+ A static_assert is an assertion that is checked at compile-time.
+ The static_assert can be global scope, function scope or class scope.
+ --------------------
+ Tuples in C++
+A tuple is an object that can hold more than one element. These elements can be of heterogenous data types. The elements of tuples are initialized as arguments in order in which they will be accessed.
+-----------------------------
+std::optional [c++17]
+
+The class template std::optional manages an optional contained value, i.e. a value that may or may not be present. 
+
+--------------------
+std::exception_ptr is a nullable pointer-like type that manages an exception object which has been thrown and captured with std::current_exception. An instance of std::exception_ptr may be passed to another function, possibly on another thread, where the exception may be rethrown and handled with a catch clause. It is reference counted type, the exception pointed will be deleted only upon the reference count falling to zero.
+
+When functions like current_exception (or) make_exception_ptr get called they return an instance of exception_ptr, and can be accessed with rethow_exception.
+-----------------
+

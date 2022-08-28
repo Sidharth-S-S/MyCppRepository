@@ -1,0 +1,501 @@
+In C language, the 'auto' keyword was used a default extended qualifier for variable declarations. For eg:
+
+
+int a;   // It implicitly meant, auto int a;
+
+//The 'const' and 'static' keywords are also termed as extended qualifiers.
+const int b=100;
+static int c=2;
+
+
+But, now in modern C++ this meaning of 'auto' keyword is depricated, and has altogether a very different take.
+
+It is now called the type-inference keyword, meaning when used in the program code, it is a message to the C++ compiler to find out and resolve
+the data-type of the variable during compilation by the compiler itself.
+
+What prompts the programmer to the prompt or request the compiler for the same, why not the programmer himself wouldn't 
+decide the same ?
+
+//This code demands a lot of effort for maintaining, particularly if any variable's type gets modified - it 
+will have a cascading effect on all those statements, where this operand is being employed. 
+
+int a;
+float b;
+double c;    //float c;
+//..
+//...
+
+float result1 = a*b;
+//..
+
+double result2 = b*c/2;
+//..
+//...
+
+double result3 = c*100;
+
+//..
+
+double resutlt4 = c*a+200;
+//...
+
+----------------------------------------------
+Upon using type inference, FLEXIBILITY
+
+int a;
+float b;
+double c;      //float c;
+
+//...
+auto result1 = a*b;   //Upon compilation ---> float result1 = a*b;
+//..
+
+auto result2 = b*c/2;  //Upon compilation ---> double result2 = b*c/2;
+
+
+auto result3 = c*100;
+
+//..
+
+auto result4 = c*a+200;
+//...
+------------------------------------------------
+TYPE-INFERENCE KEYWORD also helps in consiceness:-
+
+//Traditional approach
+
+list<int> ls1;
+//..
+list<int>::iterator itr = ls1.begin();
+
+
+//Modern approach
+
+list<int> ls1;
+//..
+auto itr = ls1.begin();
+
+--------------------------------------------------------
+When using type-inference keyword 'auto' for defining a variable(s), such variable(s) must and should be initialized 
+with an value or an equation. Failing which the compiler will flag an error.
+
+auto a;  //ERROR
+
+auto a = 100;  //ok  --> int a=100;
+
+------------------
+
+The keyword 'auto' cannot be used in 3 different contexts..
+  
+  1. As a formal parameter of a function, except for lambda's in C++14.
+  
+    void fun(auto x)   //error
+    {}
+  
+  2. While declaring an array type instance.
+  
+    auto arr[10]={10,20, ...};   //error
+    
+  
+  3. Cannot be used for declaring a class data-member.
+
+      class CA
+      {
+        private:
+          int a;
+          float b;
+          auto c;  //error
+      };
+
+-------------------------------------------------
+While using 'auto' keyword, we need to keep in mind that, the extended qualifiers if any will be ignored by the 'auto' keyword.
+
+for eg:
+
+const int a = 100;
+const auto b = 200;           // const int b = 200;
+
+static int c = 1;
+static auto d = 2;           // static int d = 2;
+
+
+volatile int e = 1;
+volatile auto f = 1;        // volatile int f = 1;
+
+
+Let the compiler decide the datatype of 'r1' based on the data-type of 'a'.
+
+auto r1 = a;   // strangely 'r1's type will be only 'int' and not 'const int'  ---> int r1 = a;
+
+auto r2 = c;   // int r2 = c;    and NOT 'static int r2 = c;'
+
+auto r3 = f;   // int r3 = f;    and NOT 'volatile int r3 = f;'
+
+********************
+const vector<int> v1;
+
+auto v2 = v1;    // vector<int> v2 = v1;    and not 'const vector<int> v2 = v1;'
+
+
+NOTE: The extended qualifiers will not be brought forward while using 'auto' for type-inferring. We have to manually add the 
+same if we wanted it.
+----------------------------------------------------------------
+
+We can also use the keyword for multiple variable declarations in a single statement.
+
+auto a=100, b=200, c=300;  //   --> int a=100,b=200,c=300;    OK
+
+auto a = 100, b=34.12f, c= 56.32;   //ERROR   --->  int a = 100, b= 34.12f, c=56.32;
+
+**************************
+solution for the above problem, where each variable has to be a distinct type.
+
+auto a = 100;               // int a =..;
+auto b = 34.12f;            // float b =..;
+auto c = 56.32;             // double c=..;
+
+----------------------------------------------------------------
+
+int func(double x){....}
+
+auto f1 = func;   // auto f1 = &func;   ===> int(*f1)(double) = &func;
+
+//call the function w.r.to 'f1'
+
+auto result = (*f1)(45.12);
+
+********************
+
+auto &f2 = func;  // int(&f2)(double) = func;
+
+
+// call the function w.r.to 'f2'
+
+auto result = f2(45.12);
+-------------------------------------------------------------------------
+TYPE-INFERENCE KEYWORD 'decltype'.
+
+The keyword 'decltype' is sligthly different from 'auto' in certain respects...
+
+  - Unlike 'auto' keyword, with 'decltype' it is not compulsory to initialize a variable that is being defined.
+  - The 'decltype' keyword does not ignore the extended qualifiers.
+  
+USAGE:
+
+auto a= 100;         //int a = 100;
+auto b = 45.12f;     //float b =..;
+double c = 98.12;
+
+
+auto var1 = a;   //Not only 'var1' type would be of the same data-type as that of 'a', it will also be initialized with value of 
+                   // 'a'.
+                   
+**********************
+We would like to define an element called 'var1' whose type shall be precisely of 'a's type, as such we are not interested in initializing 'var1' with the contents of a.
+
+decltype(a) var1;         // int var1;
+
+We would like to define a new element called 'var2', whose type shall be the computed results of operands 'a' and 'b'.
+
+decltype(a*b) var2;     // float var2;
+
+
+*****************************
+const auto x1 = 400;   // const int x1 = 400;
+
+auto var3 = x1;          // int var3 = v1;  //CONST WILL BE IGNORED
+
+With decltype, the extended qualifiers will not be ignored...
+
+decltype(x1) var3;   // const int var3;   ---> ERROR
+
+CORRECTION...
+
+decltype(x1) var3 = 300;   // const int var3 = 300;  //ok
+
+****************************************
+We can also use 'decltype' keyword for declaring reference types...
+
+auto a = 100;  //int a = 100;
+
+//Traditional approach for declaring a reference type
+
+int &ref1 = a;
+
+//Modern approach-1
+
+auto &ref2 = a;     // int &ref2 = a;
+
+//Modern approach-2
+
+decltype(a) ref3;   // int ref3;  --> VALUE TYPE
+
+decltype((a)) ref3;  // int& ref3;  //ERROR, alias to whom not stated
+
+CORRECTION:
+
+int b=...;
+
+decltype((a)) ref3 = b;   // decltype( &(int) )  ref3 = b;  ---> int& ref3 = b;
+--------------------------------------------------------------------------------------------------
+LAMBDA FUNCTIONS:
+  
+  - These are ananymous functions, functions that do not have a name.
+  
+  - These functions can be also scoped inside of another function [nested function or local function].
+  
+
+A simple definition of a lambda function:-
+
+    []()
+    {
+       //....
+    };
+
+In order to invoke the above lambda function without a handle name...
+
+    []()
+    {
+       //....
+    }();   //invoke at the point of definition itself and can be used only once inside the function scope.
+    
+
+What if we want to a define lambda inside of a function and would like to implement or make a call more than once ?
+
+Then we define a lambda function an handle.
+
+ auto lm = []()
+   {
+     //..
+   };
+
+//to invoke the above lambda with a handle name 'lm'
+
+lm();
+
+//..
+
+lm();
+
+*****************************************************
+LAMBDA CAPTURE CLAUSE OR LAMBDA INTRODUCER:
+
+int main()
+{
+   int a,b;  //being local variables they are accessible only inside main function
+   
+   //Lambda is also local to 'main' function
+   auto lm1 = []()
+   {
+      cout << a ;  //error, cannot access the local variable of main
+      cout << b;   //error, cannot access the local variable of main
+   };
+   The type-inference by the compiler for 'lm1' is :
+   
+   auto lm1 = ...;    ---> function<void(void)> lm1 = [](){...};
+   //call statement
+   lm1();   --> lm1.operator()();
+   
+   ******************************************************
+   
+   
+   //CAPTURING OUTER SCOPE ELEMENTS EITHER BY VALUE OR REFERENCE
+   auto lm2 =[a]()
+   {
+      //It is desired to access the element 'a' alone of the outerscope inside the lambda - capture the same by value
+      
+      cout << a;  //ok
+      cout << b; //error
+   };
+   
+   auto lm3 =[&a]()
+   {
+      //It is desired to access the element 'a' alone of the outerscope inside the lambda - capture the same by reference
+      
+      cout << a;  //ok
+      cout << b; //error
+   };
+   
+   //CAPTURING ALL OUTER SCOPE ELEMENTS BY VALUE
+   
+   auto lm4 = [=]()
+   {
+      //It is desired to access all the elements of the outerscope inside the lambda - capture the same by value
+      
+      cout << a;  //ok
+      cout << b;  //ok
+   };
+   
+   auto lm4 = [&]()
+   {
+      //It is desired to access all the elements of the outerscope inside the lambda - capture the same by reference
+      
+      cout << a;  //ok
+      cout << b;  //ok
+   };
+   
+   What if we want to capture all the outer-scope elements by VALUE and 'b' alone by reference
+   
+   auto lm5 = [=, &b]()
+   {
+      
+      cout << a;  //ok
+      cout << b;  //ok
+   };
+   
+   What if we want to capture all the outer-scope elements by REFERENCE and 'b' alone by VALUE
+   
+   auto lm5 = [&, b]()
+   {
+      
+      cout << a;  //ok
+      cout << b;  //ok
+   };
+   
+return 0;
+}
+
+*****************************************************
+Lambda internals, when captured by reference:
+
+
+int a,b;  //local variables (outer-scope elements)
+
+auto lm1=[&]()        // [&] ---->  [int& lambda::a = main::a, int& lambda::b = main::b]
+    {
+        a=a+100;             // lambda::a = lambda::a + 100;
+        b=b+100;             // lambda::b = lambda::b + 100;
+        
+        cout <<"inside lambda, a= " << a << endl;
+        cout <<"inside lambda, b=" << b << endl;
+    };
+
+-------------
+Lambda internals, when captured by VALUE:
+
+Note: Any outer-scope element(s) when captured by value or by default 'const' [read-only]
+
+
+int a,b;  //local variables (outer-scope elements)
+
+auto lm1=[=]()           // [=] ---->  [static const int lambda::a = main::a, static const int lambda::b = main::b]
+    {
+        a=a+100;             // lambda::a = lambda::a + 100;  --> Error, because they are 'const'
+        b=b+100;             // lambda::b = lambda::b + 100;  --> Error, because they are 'const'
+        
+        cout <<"inside lambda, a= " << a << endl;
+        cout <<"inside lambda, b=" << b << endl;
+    };
+
+
+When it is insisted upon, that the outer-scope elements that have been captured by VALUE, must undergo modifications, and such modifications has to be local to the lambda function, it should not modify the original outer-scope element.
+
+Then while defining the lambda function, make use of the 'mutable' qualifier. All outer-scope elements captured by VALUE will now permit changes to them, inspite of being 'const'.
+
+
+int a,b;  //local variables (outer-scope elements)
+
+auto lm1=[=]() mutable          // [=] ---->  [static int lambda::a = main::a, static int lambda::b = main::b]
+    {
+        a=a+100;       // lambda::a = lambda::a + 100;  --> OK,  changes are allowed as it is qualifed mutable.
+        b=b+100;       // lambda::b = lambda::b + 100;  --> OK,  changes are allowed as it is qualifed mutable.
+        
+        cout <<"inside lambda, a= " << a << endl;
+        cout <<"inside lambda, b=" << b << endl;
+    };
+
+---------------------------------------------------------------------------
+int main()
+{
+    const int a=10,b=20;
+    cout <<"main::a " << &a << endl;
+    cout <<"main::b " << &b << endl;
+
+//If the captured elements of the outer-scope are read-only, the keyword 'mutable' hardly has any impact.
+
+    auto lm1=[=]() mutable    // [=]  ---> [static const int lambda::a   = main::a, static const int lambda::b = main::b]
+    {
+        a=a+100;
+        b=b+100;
+        cout <<"inside lambda, a= " << a << ", its address =" << &a <<  endl;
+        cout <<"inside lambda, b=" << b << ", its address = " << &b << endl;
+   };
+
+
+//Still, if is insisted upon making changes to the outer-scope captured const elements, then add 'mutable' qualifier for the outer-scope element(s) declarations.
+
+int main()
+{
+    //mutable const int a=10,b=20;
+	const int a=10,b=20;
+    cout <<"main::a " << &a << endl;
+    cout <<"main::b " << &b << endl;
+
+//If the captured elements of the outer-scope are read-only, the keyword 'mutable' hardly has any impact.
+
+    auto lm1=[=]() mutable    // [=]  ---> [static const int lambda::a   = main::a, static const int lambda::b = main::b]
+    {
+        a=a+100;
+        b=b+100;
+        cout <<"inside lambda, a= " << a << ", its address =" << &a <<  endl;
+        cout <<"inside lambda, b=" << b << ", its address = " << &b << endl;
+   };
+
+--------------------------------------------
+Traditional way of declaring a variable:
+
+int a;  //will hold garbage if inside a function scope.
+
+int b=100;
+int b(100);
+
+Modern approach
+
+int a{};  //Though 'a' is a local variable, it will be initialized to zero.
+
+int b{100};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

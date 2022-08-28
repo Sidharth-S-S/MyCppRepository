@@ -1,0 +1,631 @@
+//Generic class
+
+template<typename T> class CA   //primary template
+{
+  //...
+};
+
+//The above generic class can also be specialized...
+template<typename T> class CA<T*>   //partial specialization
+{
+  //..
+};
+
+template<> class CA<char>   //full specialization
+{
+//...
+};    
+---------------------------------
+template<typename T> class CA {  };
+
+//The specialized class for 'char', shall also derive from the primary template class
+template<typename T> class CA<char> : public CA<T>
+{ };
+--------------------------------------------------------------
+VARIADIC CLASS TEMPLATE:
+
+
+template<typename... PACK> class CA
+{
+    //A variadic class template
+};    
+
+(or)
+
+template<typename T, typename... PACK> class CA
+{
+   //A variadic class template
+};    
+------------------------------------------------
+//A variadic generic class that facilitates in realizing multi-level inheritance while instantiation.
+
+template<typename... PARAMETER_PACK> class CA
+{
+public:
+    CA(){cout <<"Base class CA" << endl;}
+};
+
+//A variadic class template that specializes from the above & also derives from the above primary variadic class template
+
+template<typename PARAMETER_TYPE, typename ... PARAMETER_PACK> class CA<PARAMETER_TYPE, PARAMETER_PACK...> : private CA<PARAMETER_PACK...>
+{
+private:
+	PARAMETER_TYPE data;
+public:
+
+	CA(PARAMETER_TYPE h, PARAMETER_PACK... args) :CA<PARAMETER_PACK... >(args...), data(h)
+	{
+		cout << "No. of elements left further ..." << sizeof...(args) << endl;
+		cout << "data " << data << endl;
+	}
+};
+
+//consumer code
+CA<int, float, double> obj1(10,12.34f, 56.12);
+
+The above generic class instantiations by the compiler will be in the following order....
+
+class CA<>
+{
+public:
+  CA(){cout <<"Base class CA" << endl;}
+};
+
+class CA<double>:private CA<>
+{
+private:
+  double data;  //56.12
+public:
+  CA(double h,[]):CA<>(),data(h)
+  {
+    //..
+    cout << data;
+  }  
+};
+
+class CA<float>:private CA<double>
+{
+private:
+  float data;  //12.34f
+public:
+  CA(float h, [56.12]):CA<double>([56.12]),data(h)
+  {
+    //..
+    cout << data;
+  }  
+};
+
+class CA<int>:private CA<float,double>
+{
+private:
+  int data;  //10
+public:
+  CA(int h, [12.34f,56.12]):CA<float,double>([12.34f,56.12]),data(h)
+  {
+    //..
+    cout << data;
+  }  
+};
+
+
+*********************************************************
+CA<int, float, double> obj1(10,12.34f, 56.12);
+
+template<typename PARAMETER_TYPE, typename ... PARAMETER_PACK> 
+           class CA<PARAMETER_TYPE, PARAMETER_PACK...> : private CA<PARAMETER_PACK...>
+           { };
+           
+Hypothetical view of the above generic declaration for the instance 'obj1' can be perceived like this....
+
+template<int, [float,double]> class CA<int, [float,double]>:private CA<float,double>  
+{ }; 
+
+//MULTILEVEL INHERITANCE to unwind the parameter-pack of a variadic class template...
+class CA<double>:private CA<> { };
+class CA<float>:private CA<double>{ };
+class CA<int>:private CA<float> { };
+
+In certain problem situations we can also go for MULTIPLE INHERITANCE to unwind the parameter-pack of a variadic class template.       
+-------------------------------------------------------------
+A variadic class template would be useful when we want to achieve compile-time strategy.
+
+  If the classes that is being consumed for achieving compile-time strategy comes from the same vendor,i.e all member functions across the different classes are same by name and signature, then
+    - Design the variadic class for MULTI-LEVEL inheritance.
+    for eg:
+      template<typename...PARAMETER_PACK> class CA
+      {
+      };
+      template<typename PARAMETER_TYPE, typename... PARAMETER_PACK> 
+          class CA<PARAMETER_TYPE,PARAMETER_PACK...>:private CA<PARAMETER_PACK...>
+          {
+          
+          };
+
+  ------------
+  If the classes that is being consumed for achieving compile-time strategy comes from different vendors, i.e. the member functions across the different classes have different names or signatures..., then
+    - Design the variadic class for MULTIPLE-INHERITANCE.
+    
+    For eg:
+    
+    template<typename... PARAMETER_PACK> class CA:public PARAMETER_PACK...
+    {
+    };
+
+**********************************************************************************
+template<typename...INSTRUMENT_TYPES> class Compose
+{
+public:
+	void play_music() { cout <<"completed...." << endl;}
+};
+
+template<typename INSTRUMENT, typename ... INSTRUMENT_TYPES> 
+           class Compose<INSTRUMENT, INSTRUMENT_TYPES...> : private Compose<INSTRUMENT_TYPES...>
+{
+private:
+	INSTRUMENT object;
+public:
+	void play_music()
+	{
+		object.play();
+		Compose<INSTRUMENT_TYPES...>::play_music();    //Compose<>::play_music();
+	}
+};
+
+Compose<Drums, Piano, Flute, Guitar> music4;
+
+The instantiation of the above variadic class template for the instance 'music4' above is as follows:
+
+class Compose<>
+{
+private:
+  
+public:
+  void play_music() { cout <<"completed...." << endl;}
+};
+
+class Compose<Guitar>:private Compose<>
+{
+private:
+  Guitar object;
+public:
+  void play_music()
+  {
+    object.play();
+    Compose<>::play_music();
+  }  
+};
+
+class Compose<Flute>:private Compose<Guitar>
+{
+private:
+  Flute object;
+public:
+  void play_music()
+  {
+    object.play();
+    Compose<Guitar>::play_music();
+  }  
+};
+
+class Compose<Piano>:private Compose<Flute,Guitar>
+{
+private:
+  Piano object;
+public:
+  void play_music()
+  {
+    object.play();
+    Compose<Flute,Guitar>::play_music();
+  }  
+};
+
+class Compose<Drums>:private Compose<Piano,Flute,Guitar>
+{
+private:
+  Drums object;
+public:
+  void play_music()
+  {
+    object.play();
+    Compose<Piano,Flute,Guitar>::play_music();
+  }  
+};
+*********************************************************************
+A variadic class template for multiple-inheritance.
+
+template<typename... Policy> class Music :public Policy...  //Derive from the parameter pack
+{   };
+
+Music<Flute, Drums,Piano> obj1; [instantiation for this object]
+
+class Music:public Flute, public Drums,public Piano
+{  };
+--------------------------
+Music<Flute> obj2;  [instantiation for this object]
+
+class Music:public Flute
+{  };
+---------------------------------
+Music<Guitar, Drums,Violin> obj3;  [instantiation for this object]
+
+class Music:public Guitar, public Drums,public Violin
+{  };
+------------------------------------------------------
+NON-TYPE parameters with class templates
+
+template<typename T> class CA
+{
+private:
+  T arr[10];   //No matter what the data type of the elements are, the size is always fixed.
+};
+
+CA<int> obj1;   // int arr[10];
+CA<float> obj2; // float array[10];
+
+What if the class consumer wants a provision for also deciding the size of the array.
+The size of the array is signed integer value and a compile-time constant [Size of the array must be resolvable by the compiler during compile-time]
+
+
+template<typename T, int SIZE> class CA
+{
+private:
+  T arr[SIZE];   // 'SIZE' the non-type parameter acts as a COMPILE-TIME  constant.
+};
+//consumer...
+CA<int, 10> obj1;   // int arr[10];
+CA<char,5> obj2;    // char arr[5];
+
+constexpr int SIZE=10;
+int arr[SIZE];
+//...  
+-----------------------------------------------------------------
+Memory management classes in Modern C++:-
+  - These classes employ certain C++ language features along with OO design's.
+  
+    Language features:
+        - Class templates
+        - Function overloading
+        - Operator overloading
+        - Conversion functions
+    Design features:
+        - PIMPL model
+        - RAII model
+        - Smartpointer design.
+           - A class instance though value type would behave and act like traditional pointer variables, is called as 
+             a smartpointer object, a class that facilitates the same is actually called smartpointer class.
+             
+----------------------------------------------
+The modern C++ library now supports 3 different types of memory management classes...
+
+1) unique_ptr
+2) shared_ptr
+3) weak_ptr
+
+#include<memory>
+
+Unique_ptr:
+          It is an instance that would help us hold the address of a heap instance.
+          Memory allocation request is explicitly made by the programmer, upon successful allocation this address is provided to the unique_ptr instance.
+          There upon this unique_ptr instance becomes the exclusive owner of that heap. This heap address is not allowed to be shared across different unique_ptr instance.
+          In other-words a unique_ptr instance is a move only type, it cannot be lvalue copy constructed.
+          By applying a move operation on this instance, the ownership gets transferred, at any given point of time the heap resource would be pointed to by only one unique_ptr instance.
+          
+      The de-allocation happens automatically when the unique_ptr instance perishes.
+      [The heap memory life-time is directly equal to the life-time of unique_ptr instance]
+
+template<typename T> class unique_ptr
+{
+private:
+  T* pointee;
+  void(*dl)(T*) = &default_delete<T>;  //in-class initializer feature
+public:
+    unique_ptr():pointee(nullptr){ }
+    unique_ptr(T* x):p(x){ }
+    //...
+    //...
+    auto& get_deleter()
+    {
+      return dl;
+    }
+    
+    T* get()
+    {
+      return pointee;
+    }
+    T* release()
+    {
+      T* ptr = this->pointee;
+      this->pointee = nullptr;
+      return ptr;
+    }
+    
+    unique_ptr(const unique_ptr& x)=delete;
+    unique_ptr& operator =(const unique_ptr& x)=delete;
+    
+    //move operations
+    unique_ptr(unique_ptr&& x):pointee(x.pointee)
+    {
+      x.pointee = nullptr;
+    }
+    unique_ptr& operator =(unique_ptr&& x) 
+    {
+      if(pointee != nullptr)
+      {
+         delete pointee;
+      }
+       pointee=x.pointee;
+       x.pointee = nullptr;
+    }
+    
+    //..
+    operator bool(){ }
+    operator->();
+    //...
+    ~unique_ptr()
+    {
+      (*dl)(pointee);
+    }
+};
+
+template<typename T> void default_delete(T *x)
+{
+  if(p != nullptr)
+     delete p;
+}
+--------------------------------------------------------------------------------
+
+  Traditional usage:
+      int* p1 = new(nothrow) int;
+      //..
+      delete p1;
+      
+  Modern usage:
+       unique_ptr<int> p1 = make_unique<int>();   // make_unique() is C++14 function
+               (or)
+       unique_ptr<int> p2 = new int{};  //error, deprecated
+       
+       unique_ptr<int> p2 = unique_ptr<int>(new int{}); 
+       
+      
+----------------------
+When a class exhibits PIMPL model, it also a good practice to introduce a conversion function 'operator bool'.
+All memory management classes have 'operator bool' overloaded as member function.
+
+class Pointee
+{
+private:
+  int* p;
+public:
+    Pointee():p(nullptr){ }
+    Pointee(int* q):p(q){ }
+    ~Pointee()
+    {
+      if(p != nullptr)
+      {
+        delete p;
+      }
+    }
+    void operator(int* q){ p = q; }
+    
+    void print(){ cout <<"data is :" << *p << endl; }
+    
+    operator bool()
+    {
+      if(p != nullptr)
+        return true;
+      else
+        return false;
+    }
+};
+
+//***consumer code***********
+int main()
+{
+   Pointee obj1(new(nothrow) int(100));
+   //if(obj1.p != nullptr)
+   if(obj1)          // if(obj1.operator bool())
+      obj1.print();
+   else
+      //...
+   //...
+   
+   Pointee obj2;
+   //...
+   //...
+   if(obj2)
+      obj2.print();
+   else
+      //....
+return 0;
+}
+----------------------------------------
+From a unique_ptr as source to a raw_pointer as target, we can employ
+  - get() function (or)
+  - release() function of the unique_ptr class.
+
+
+From a raw_pointer as the source and a unique_ptr as the target, we can employ
+    - reset() function of unique_ptr class.
+    
+When we happen to define unique_ptr instances that should point or delegate to a custom delete handler, and the heap memory resource is incidentally being accquired with the help of make_unique function and not the 'new' operator function, then we need to use the member function called 'get_deleter' to provide the address of the custom delete handler function with respect to the unique_ptr instance.  
+---------------------------------------------------------------------------
+Why make_unique call is better than 'new' operator call ?
+
+void fun(int* p1, float* p2, double* p3)
+{
+  //...
+  delete p1;
+  delete p2;
+  delete p3;
+}
+
+int main()
+{
+     fun(new(nothrow) int, new(nothrow) float, new(nothrow) double);  //NOT SAFE, memory leaks
+             [Suc..]                [Suc..]          [Broke...]
+     //...
+}
+
+Alternate, better or modern idea...
+
+void fun(unique_ptr<int> p1, unique_ptr<float> p2, unique_ptr<double> p3)
+{
+  //...
+  
+}
+
+int main()
+{
+     fun(make_unique<int>(), make_unique<float>(), make_unique<double>());  //Very safe, no memory leaks
+             [Suc..]              [Suc..]             [Broke...]
+     //...
+}
+
+A call to make_unique will always yield a nameless 'unique_ptr' type instance
+*******************************
+
+  - get() method of unique_ptr, extracts the raw_pointer content from the unique_ptr instance, useful or recommended only under circumstances when the heap resource owned by this unique_ptr instance should serve as a parameter to a legacy code, whose formal parameter is a raw_pointer element. Further this business plan of this legacy code is such that it wishes to only access the heap resource to carry out the desired business, as such this function is not keen acquiring ownership of this heap resource owned by the unique_ptr.
+  
+  - release() method of unique_ptr, not only extracts or provides the raw_pointer content of the unique_ptr instance, also dis-owns or transfers the ownership of the heap resource to a legacy code, taking a raw_pointer as its formal parameter, now it is the duty of this legacy code which has acquired the ownership of the heap resource to de-allocate the same at a suitable time.
+
+Note: In General the above 2 methods help us extract the raw_pointer info from an unique_ptr instance.
+
+-----------
+Normally when we have an unique_ptr instance, fetching heap memory in a modern approach would be like...
+  1) call the make_unique<> function
+     unique_ptr<IData> ptr;
+     ptr = make_unique<DataA>();
+  
+  2) call the new operator and cast the return type to a unique_ptr type
+     unique_ptr<IData> ptr;
+     //...
+     ptr = new DataA;  //error
+     ptr = unique_ptr<DataA>(new DataA);  //ok
+     
+  3) As an application developer we wished to consume a helper member function of a legacy class code, then what ?
+  
+     template<typename T> class Factory
+     {
+     public:
+       static T* GetData()
+       {
+         return new T;
+       }
+     };
+  
+     since the above static method returns a data_type* kind, such return result cannot be directly accomodated onto a unique_ptr instance, we need cast it to a unique_ptr kind.
+     
+     unique_ptr<IData> ptr;
+     
+     ptr = Factory<DataA>::GetData();  //error, equivalent to : ptr = new DataA;
+     ptr = unique_ptr<DataA>(Factory<DataA>::GetData());
+     
+     The above statement, can be avoided with the help of 'reset' member function of unique_ptr.
+  
+      unique_ptr<IData> ptr;
+      //..
+      ptr.reset(Factory<DataA>::GetData());
+  
+  The 'reset()' has 2 overloaded forms...
+  1) reset() member function accepts a raw_pointer as input and suitabily converts this raw_pointer to the actual target type that the unique_ptr has been constructed for.
+  
+  2) A 'reset()' call without any parameter, this member function call actually helps in de-allocating the heap memory owned by him, well before the unique_ptr instance could perish.
+  
+    A scenario where a call to the 'reset()' function with no parameter of unique_ptr class would be helpful:
+    
+    Let us assume we have a function, whose life-time is very large. Within the scope of such a function a request for heap memory is quite intensive, every heap resource that is acquired, its handle is provided to distinct unique_ptr instances, as it is very safe, ensuring no memory leak or dangling pointer and even exception safe.
+    
+    Given the nature of this function being heap-intensive in its operations, if there a circumstance or situation where at a particular stage of the function execution we realize the earlier heap allocations made and owned by a few unique_ptr instances is of no more use, as the desired function or business on those heap resources have already been achieved. It would be a good-idea and under such situations, we programmers take control of the life-time of the heap instances owned by the unique_ptr handles and not wait for the unique_ptr to have its natural destruction or death,as the functions life-time is very huge. 
+  
+------------------------------
+MANAGING ARRAY TYPE INSTANCES with unique_ptr handles:-
+
+    When acquiring an array of heap instances, which are likely to be owned by a unique_ptr instance, these instances will automatically call the suitable handler functions in their destructor methods to de-allocate the array of heap resources owned by them, while they are about to perish on the stack.
+    
+    If there are problem situations where we programmers would like to take control of this de-allocation process, primarily for a reason, that we wished to accomplish some very important business just before the array of heap instances owned by the unique_ptr is about to be de-allocated, then we define our own delete-handler for the same, and further at the time of creating the unique_ptr instance we provide the custom delete-handler as a parameter, so that when the unique_ptr instance is about to perish, it would call our own custom delete-handler and not the built-in to achieve the desired goal.
+    
+    
+    template<typename T1, typename T2 = default_delete<T1>> class unique_ptr
+    {
+    public:
+       unique_ptr(T1* x, T2 x)
+       {  }
+       
+       //Expected, but does not have one for move operation
+       unique_ptr(T1&& x, T2 x)
+       { }
+    };
+  
+  
+  unique_ptr<...>  ptr2(ptr1.release(),Arr_deleter);
+  
+  unique_ptr<...>  ptr2(std::move(ptr1),Arr_deleter);  //error, suitable constructor
+---------------------------------------------------------
+Member function 'get_deleter' of unique_ptr class returns a reference to the default_delete handler data member.
+
+With the help of this member function, we can provide or assign custom delete handlers for any unique_ptr object already constructed with default_delete handlers.
+----------------------------------------------------
+SHARED_PTR:-
+  A memory management class that can share or multiple shared_ptr instances can point to the same heap resource. An instance of shared_ptr is LVALUE copyable and LVALUE assignable.
+  When multiple instances of shared_ptr happen to point to the same heap instance then, which shared_ptr will de-allocate the heap memory when they are losing scope or perishing ?
+  
+  The design of the shared_ptr memory management class takes care of this issue. The shared_ptr instances are also called as reference-counted types. Meaning, there is a count internally maintained indicating as to how many shared_ptr instances are pointing to a common heap resource.
+  
+  When a shared_ptr instances happens to perish, this instance will decrement this reference-count value by one, and further a check would be made to see if this decremented value is zero, if so a de-allocation of the heap resource will take place, else not.
+  
+  A shared_ptr type instance handle would be recomended particularly when an expensive heap resource scope has to be extended across different functions, without duplicating this expensive heap resource and still be exception safe, the last shared_ptr instance that is about to perish would de-allocate the heap instance.
+  
+  This shared_ptr instances apart from allocation heap memory for the type of data we desire, they also do additional heap memory allocation for internal book-keeping of the reference count. This book keeping information block of heap memory is also called as CONTROL-BLOCK.
+  
+  The control-block is designed to hold few informations...
+    - handle to the actual heap instance which it is supposed to manage.
+    - A count on how many shared_ptr instances are sharing the same heap resource [strong count].
+    - A count on how many weak_ptr instances are sharing the same shared_ptr state [weak count].
+    - A handle to the delete-handlers...
+    
+    What is the life-time of the actual heap instance that we desire to manage on the heap w.r.to a shared_ptr?
+      The actual life of the heap instance that we wished the shared_ptr manages, depends upon the strong-count value in the control block. If the strong count is one or greater, the heap instance would be residing on the heap memory. If the strong count drops to zero, the heap instance will get de-allocated.
+      
+    
+    What is the life-time of the control-block on the heap, shared by different shared_ptr/weak_ptr instances ?
+    
+      The actual life-time of the control block is, the moment both strong-count and weak-count fall to zero the control-block will get de-allocated.
+***********************
+When will the shared_ptr instances have a seperate or distinct control blocks for them ?
+  - A shared_ptr instance upon creation or construction is being initialized with a 'new' operator call.
+  - A shared_ptr instance upon creation or construction is being initialized with a raw_pointer
+  - A shared_ptr instance upon creation is being initialized with a make_shared<>() function call.
+
+shared_ptr<datatype> ptr(new...);
+shared_ptr<datatype> ptr(raw_pointer);
+shared_ptr<datatype> ptr = make_shared<datatype>();
+
+Note:
+    Please be cautious while providing a raw_pointer as a parameter for a shared_ptr object under construction, providing the same raw_pointer address for multiple shared_ptr instances will multiply the number of 'delete' attempts when these shared_ptr instances are perishing..
+    
+    for eg:
+            int* fun()
+            {
+               static int* p = new int;
+               //..
+               return p;
+            }
+            
+      Trying to hold the return address of the above function with multiple shared_ptr is dangerous.
+      shared_ptr<int> p1(fun());  //once, fine
+      //...more than once dangerous
+       
+************************
+When will the shared_ptr instances share a common a control block ?      
+    - When shared_ptr instances are being LVALUE copy constructed.
+    - When one shared_ptr is being LVALUE assigned with another shared_ptr instance
+    
+While construction and intializing any shared_ptr instances, ensure the parameter to the shared_ptr instance is..
+        - Also a shared_ptr instance [will share the same control-block] (or)
+        - It is new operator call [Will have a seperate control-block] (or)
+        - It is a make_shared function call [will have a seperate control-block].
+ 
+ Never try to provide the same input information to multiple shared_ptr instance thru a raw_pointer variable.
+ Note:
+  Each shared_ptr instances will have distinct control-blocks, thus leading to that many delete's.    
+*************************************
